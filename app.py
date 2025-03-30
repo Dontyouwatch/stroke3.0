@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify, send_from_directory
-import numpy as np
+from xgboost import XGBClassifier
 import pandas as pd
 import joblib
 from pathlib import Path
@@ -13,26 +13,21 @@ model = None
 scaler = None
 
 def load_model_and_scaler():
-    """Load the trained model and scaler from files"""
+    """Load the trained model (JSON) and scaler (pkl)"""
     global model, scaler
     
     try:
-        model_path = Path(__file__).parent / 'models' / 'strokemodel.pkl'
-        scaler_path = Path(__file__).parent / 'models' / 'scaler.pkl'
+        model_dir = Path(__file__).parent / 'models'
+        model_path = model_dir / 'strokemodel.json'
+        scaler_path = model_dir / 'scaler.pkl'
         
-        # Try loading with joblib first
-        try:
-            model = joblib.load(model_path)
-            scaler = joblib.load(scaler_path)
-            print("Model loaded with joblib")
-        except:
-            # Fallback to XGBoost's native loading
-            from xgboost import XGBClassifier
-            model = XGBClassifier()
-            model.load_model(str(model_path))
-            scaler = joblib.load(scaler_path)
-            print("Model loaded with XGBoost native")
-            
+        # Load XGBoost model from JSON
+        model = XGBClassifier()
+        model.load_model(model_path)
+        
+        # Load scaler from pickle
+        scaler = joblib.load(scaler_path)
+        
         print("Model and scaler loaded successfully")
         return True
     except Exception as e:
@@ -61,35 +56,33 @@ def predict():
                 'status': 'error'
             }), 400
 
-        # Debug print received data
-        print("Received data:", data)
+        # Prepare input features
+        bmi = float(data.get("BMI", 0))
+        age = float(data.get("Age", 0))
+        cholesterol = float(data.get("Cholesterol", 0))
         
-        # Prepare input data with all required features
-        input_data = {
-            "Age": float(data.get("Age", 0)),
-            "BMI": float(data.get("BMI", 0)),
-            "Cholesterol": float(data.get("Cholesterol", 0)),
+        input_features = {
+            "Age": age,
+            "BMI": bmi,
+            "Cholesterol": cholesterol,
             "Hypertension_Category": int(data.get("Hypertension_Category", 0)),
             "Atrial_Fibrillation": int(data.get("Atrial_Fibrillation", 0)),
             "Diabetes": int(data.get("Diabetes", 0)),
             "Smoking": int(data.get("Smoking", 0)),
             "Previous_Stroke": int(data.get("Previous_Stroke", 0)),
-            "BMI_Category_1": int(data.get("BMI_Category_1", 0)),
-            "BMI_Category_2": int(data.get("BMI_Category_2", 0)),
-            "BMI_Category_3": int(data.get("BMI_Category_3", 0)),
-            "Cholesterol_Category_1": int(data.get("Cholesterol_Category_1", 0)),
-            "Cholesterol_Category_2": int(data.get("Cholesterol_Category_2", 0)),
-            "Age_Group_1": int(data.get("Age_Group_1", 0)),
-            "Age_Group_2": int(data.get("Age_Group_2", 0)),
-            "BMI_Hypertension": float(data.get("BMI_Hypertension", 0)),
-            "Cholesterol_Atrial_Fibrillation": float(data.get("Cholesterol_Atrial_Fibrillation", 0))
+            "BMI_Category_1": 1 if 18.5 <= bmi < 24.9 else 0,
+            "BMI_Category_2": 1 if 25 <= bmi < 29.9 else 0,
+            "BMI_Category_3": 1 if bmi >= 30 else 0,
+            "Cholesterol_Category_1": 1 if 200 <= cholesterol < 240 else 0,
+            "Cholesterol_Category_2": 1 if cholesterol >= 240 else 0,
+            "Age_Group_1": 1 if 40 <= age < 60 else 0,
+            "Age_Group_2": 1 if age >= 60 else 0,
+            "BMI_Hypertension": bmi * int(data.get("Hypertension_Category", 0)),
+            "Cholesterol_Atrial_Fibrillation": cholesterol * int(data.get("Atrial_Fibrillation", 0))
         }
 
         # Create DataFrame
-        input_df = pd.DataFrame([input_data])
-        
-        # Debug print prepared data
-        print("Input DataFrame:", input_df)
+        input_df = pd.DataFrame([input_features])
         
         # Scale numeric features
         numeric_features = ["Age", "Cholesterol", "BMI", "BMI_Hypertension", "Cholesterol_Atrial_Fibrillation"]
@@ -113,15 +106,13 @@ def predict():
         })
         
     except Exception as e:
-        print(f"Prediction error: {str(e)}")
-        print(traceback.format_exc())
+        print(f"Prediction error: {str(e)}\n{traceback.format_exc()}")
         return jsonify({
             'error': 'Internal server error',
             'status': 'error',
             'message': str(e)
         }), 500
 
-# Static file routes
 @app.route('/')
 def serve_index():
     return send_from_directory(app.static_folder, 'index.html')
