@@ -12,8 +12,8 @@
       justify-content: center;
       align-items: center;
       min-height: 100vh;
-      padding: 20px;
       margin: 0;
+      padding: 20px;
     }
     .form-container {
       background: white;
@@ -37,17 +37,16 @@
       color: #34495e;
       font-weight: 500;
     }
-    select, input {
+    select {
       width: 100%;
       padding: 0.75rem;
       border: 1px solid #ddd;
       border-radius: 6px;
       font-size: 1rem;
-      box-sizing: border-box;
     }
     select:focus {
-      border-color: #3498db;
       outline: none;
+      border-color: #3498db;
       box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
     }
     button {
@@ -65,10 +64,17 @@
     button:hover {
       background: #2980b9;
     }
-    .loading {
+    .input-group {
+      display: flex;
+      gap: 10px;
+    }
+    .input-group .form-group {
+      flex: 1;
+    }
+    #loadingIndicator {
+      display: none;
       text-align: center;
       margin: 1.5rem 0;
-      display: none;
     }
     .loading-spinner {
       border: 4px solid #f3f3f3;
@@ -80,10 +86,10 @@
       margin: 0 auto 1rem;
     }
     #result-container {
+      display: none;
       margin-top: 1.5rem;
       padding: 1.5rem;
       border-radius: 8px;
-      display: none;
     }
     .risk-high {
       background-color: #ffebee;
@@ -101,27 +107,20 @@
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
     }
-    .input-group {
-      display: flex;
-      gap: 10px;
-    }
-    .input-group .form-group {
-      flex: 1;
-    }
   </style>
 </head>
 <body>
   <div class="form-container">
     <h2>Stroke Risk Assessment</h2>
-    <form id="strokeForm" method="POST" action="/predict">
+    <form id="strokeForm">
       <div class="input-group">
         <div class="form-group">
           <label for="age">Age Group</label>
           <select id="age" name="age" required>
             <option value="">Select age group</option>
-            <option value="40">Under 40</option>
+            <option value="30">Under 40</option>
             <option value="50">40-59</option>
-            <option value="60">60+</option>
+            <option value="65">60+</option>
           </select>
         </div>
         <div class="form-group">
@@ -137,7 +136,7 @@
         <label for="bmi">BMI Category</label>
         <select id="bmi" name="bmi" required>
           <option value="">Select BMI category</option>
-          <option value="18.5">Underweight (&lt;18.5)</option>
+          <option value="18">Underweight (&lt;18.5)</option>
           <option value="22">Normal (18.5-24.9)</option>
           <option value="27">Overweight (25-29.9)</option>
           <option value="32">Obese (≥30)</option>
@@ -200,98 +199,84 @@
 
       <button type="submit">Calculate Stroke Risk</button>
     </form>
-    
-    <div class="loading" id="loadingIndicator">
+
+    <div id="loadingIndicator">
       <div class="loading-spinner"></div>
       <p>Analyzing your risk factors...</p>
     </div>
-    
+
     <div id="result-container">
-      <h3>Stroke Risk Assessment Result</h3>
-      <div id="result-percentage"></div>
-      <div id="result-details"></div>
+      <h3>Stroke Risk Assessment</h3>
+      <div id="result-percentage" style="font-size: 2rem; font-weight: bold;"></div>
+      <div id="result-details" style="margin-top: 1rem;"></div>
     </div>
   </div>
 
   <script>
-   // Update your form submission handler
-async function handleSubmit(e) {
-  e.preventDefault();
-  
-  // Show loading state
-  loadingIndicator.style.display = 'block';
-  resultContainer.style.display = 'none';
+    document.getElementById('strokeForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      // Show loading
+      document.getElementById('loadingIndicator').style.display = 'block';
+      document.getElementById('result-container').style.display = 'none';
+      
+      try {
+        // Get form values
+        const formData = {
+          Age: parseFloat(document.getElementById('age').value),
+          BMI: parseFloat(document.getElementById('bmi').value),
+          Cholesterol: parseFloat(document.getElementById('cholesterol').value),
+          Hypertension_Category: parseInt(document.getElementById('hypertension').value),
+          Atrial_Fibrillation: parseInt(document.getElementById('atrial-fibrillation').value),
+          Diabetes: parseInt(document.getElementById('diabetes').value),
+          Smoking: parseInt(document.getElementById('smoking').value),
+          Previous_Stroke: parseInt(document.getElementById('previous-stroke').value)
+        };
 
-  try {
-    // Get all form values
-    const age = parseFloat(document.getElementById('age').value);
-    const bmi = parseFloat(document.getElementById('bmi').value);
-    const cholesterol = parseFloat(document.getElementById('cholesterol').value);
-    const hypertension = parseInt(document.getElementById('hypertension').value);
-    const atrialFib = parseInt(document.getElementById('atrial-fibrillation').value);
-    const diabetes = parseInt(document.getElementById('diabetes').value);
-    const smoking = parseInt(document.getElementById('smoking').value);
-    const prevStroke = parseInt(document.getElementById('previous-stroke').value);
+        // Send to backend
+        const response = await fetch('/predict', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(formData)
+        });
 
-    // Calculate derived features
-    const bmiCat1 = bmi >= 18.5 && bmi < 24.9 ? 1 : 0;
-    const bmiCat2 = bmi >= 25 && bmi < 29.9 ? 1 : 0;
-    const bmiCat3 = bmi >= 30 ? 1 : 0;
-    const cholCat1 = cholesterol >= 200 && cholesterol < 240 ? 1 : 0;
-    const cholCat2 = cholesterol >= 240 ? 1 : 0;
-    const ageGroup1 = age >= 40 && age < 60 ? 1 : 0;
-    const ageGroup2 = age >= 60 ? 1 : 0;
-    const bmiHypertension = bmi * hypertension;
-    const cholAtrialFib = cholesterol * atrialFib;
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.message || 'Prediction failed');
+        }
 
-    const formData = {
-      Age: age,
-      BMI: bmi,
-      Cholesterol: cholesterol,
-      Hypertension_Category: hypertension,
-      Atrial_Fibrillation: atrialFib,
-      Diabetes: diabetes,
-      Smoking: smoking,
-      Previous_Stroke: prevStroke,
-      BMI_Category_1: bmiCat1,
-      BMI_Category_2: bmiCat2,
-      BMI_Category_3: bmiCat3,
-      Cholesterol_Category_1: cholCat1,
-      Cholesterol_Category_2: cholCat2,
-      Age_Group_1: ageGroup1,
-      Age_Group_2: ageGroup2,
-      BMI_Hypertension: bmiHypertension,
-      Cholesterol_Atrial_Fibrillation: cholAtrialFib
-    };
-
-    console.log("Sending data:", formData);
-
-    const response = await fetch('/predict', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(formData)
+        const result = await response.json();
+        
+        // Display results
+        const riskPercentage = result.risk_percentage;
+        const riskLevel = riskPercentage >= 15 ? 'High' : 
+                         riskPercentage >= 5 ? 'Medium' : 'Low';
+        
+        document.getElementById('result-percentage').textContent = `${riskPercentage}%`;
+        document.getElementById('result-percentage').style.color = 
+          riskLevel === 'High' ? '#e53935' : 
+          riskLevel === 'Medium' ? '#ffb300' : '#43a047';
+        
+        document.getElementById('result-details').textContent = 
+          `Risk Level: ${riskLevel}`;
+        
+        document.getElementById('result-container').className = 
+          `risk-${riskLevel.toLowerCase()}`;
+        document.getElementById('result-container').style.display = 'block';
+        
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('result-container').style.display = 'block';
+        document.getElementById('result-container').className = 'risk-high';
+        document.getElementById('result-percentage').textContent = 'Error';
+        document.getElementById('result-details').textContent = 
+          error.message || 'Failed to get prediction. Please try again.';
+      } finally {
+        document.getElementById('loadingIndicator').style.display = 'none';
+      }
     });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || `Server error: ${response.status}`);
-    }
-
-    const data = await response.json();
-    displayResults(data);
-    
-  } catch (error) {
-    console.error('Prediction error:', error);
-    resultContainer.style.display = 'block';
-    resultContainer.className = 'risk-high';
-    resultPercentage.innerHTML = 'Error';
-    resultDetails.textContent = error.message || 'Failed to get prediction. Please try again.';
-  } finally {
-    loadingIndicator.style.display = 'none';
-  }
-}
   </script>
 </body>
 </html>
