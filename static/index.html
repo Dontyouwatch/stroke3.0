@@ -214,112 +214,84 @@
   </div>
 
   <script>
-    const strokeForm = document.getElementById('strokeForm');
-    const resultContainer = document.getElementById('result-container');
-    const resultPercentage = document.getElementById('result-percentage');
-    const resultDetails = document.getElementById('result-details');
-    const loadingIndicator = document.getElementById('loadingIndicator');
+   // Update your form submission handler
+async function handleSubmit(e) {
+  e.preventDefault();
+  
+  // Show loading state
+  loadingIndicator.style.display = 'block';
+  resultContainer.style.display = 'none';
 
-    strokeForm.addEventListener('submit', async function(e) {
-      e.preventDefault();
-      
-      loadingIndicator.style.display = 'block';
-      resultContainer.style.display = 'none';
-      
-      try {
-        // Get all form values
-        const formData = {
-          Age: parseFloat(document.getElementById('age').value),
-          BMI: parseFloat(document.getElementById('bmi').value),
-          Cholesterol: parseFloat(document.getElementById('cholesterol').value),
-          Hypertension_Category: parseInt(document.getElementById('hypertension').value),
-          Atrial_Fibrillation: parseInt(document.getElementById('atrial-fibrillation').value),
-          Diabetes: parseInt(document.getElementById('diabetes').value),
-          Smoking: parseInt(document.getElementById('smoking').value),
-          Previous_Stroke: parseInt(document.getElementById('previous-stroke').value)
-        };
+  try {
+    // Get all form values
+    const age = parseFloat(document.getElementById('age').value);
+    const bmi = parseFloat(document.getElementById('bmi').value);
+    const cholesterol = parseFloat(document.getElementById('cholesterol').value);
+    const hypertension = parseInt(document.getElementById('hypertension').value);
+    const atrialFib = parseInt(document.getElementById('atrial-fibrillation').value);
+    const diabetes = parseInt(document.getElementById('diabetes').value);
+    const smoking = parseInt(document.getElementById('smoking').value);
+    const prevStroke = parseInt(document.getElementById('previous-stroke').value);
 
-        // Calculate derived features
-        const bmi = formData.BMI;
-        const age = formData.Age;
-        const cholesterol = formData.Cholesterol;
+    // Calculate derived features
+    const bmiCat1 = bmi >= 18.5 && bmi < 24.9 ? 1 : 0;
+    const bmiCat2 = bmi >= 25 && bmi < 29.9 ? 1 : 0;
+    const bmiCat3 = bmi >= 30 ? 1 : 0;
+    const cholCat1 = cholesterol >= 200 && cholesterol < 240 ? 1 : 0;
+    const cholCat2 = cholesterol >= 240 ? 1 : 0;
+    const ageGroup1 = age >= 40 && age < 60 ? 1 : 0;
+    const ageGroup2 = age >= 60 ? 1 : 0;
+    const bmiHypertension = bmi * hypertension;
+    const cholAtrialFib = cholesterol * atrialFib;
 
-        // Prepare data for API
-        const apiData = {
-          Age: age,
-          BMI: bmi,
-          Cholesterol: cholesterol,
-          Hypertension_Category: formData.Hypertension_Category,
-          Atrial_Fibrillation: formData.Atrial_Fibrillation,
-          Diabetes: formData.Diabetes,
-          Smoking: formData.Smoking,
-          Previous_Stroke: formData.Previous_Stroke,
-          BMI_Category_1: bmi >= 18.5 && bmi < 24.9 ? 1 : 0,
-          BMI_Category_2: bmi >= 25 && bmi < 29.9 ? 1 : 0,
-          BMI_Category_3: bmi >= 30 ? 1 : 0,
-          Cholesterol_Category_1: cholesterol >= 200 && cholesterol < 240 ? 1 : 0,
-          Cholesterol_Category_2: cholesterol >= 240 ? 1 : 0,
-          Age_Group_1: age >= 40 && age < 60 ? 1 : 0,
-          Age_Group_2: age >= 60 ? 1 : 0,
-          BMI_Hypertension: bmi * formData.Hypertension_Category,
-          Cholesterol_Atrial_Fibrillation: cholesterol * formData.Atrial_Fibrillation
-        };
+    const formData = {
+      Age: age,
+      BMI: bmi,
+      Cholesterol: cholesterol,
+      Hypertension_Category: hypertension,
+      Atrial_Fibrillation: atrialFib,
+      Diabetes: diabetes,
+      Smoking: smoking,
+      Previous_Stroke: prevStroke,
+      BMI_Category_1: bmiCat1,
+      BMI_Category_2: bmiCat2,
+      BMI_Category_3: bmiCat3,
+      Cholesterol_Category_1: cholCat1,
+      Cholesterol_Category_2: cholCat2,
+      Age_Group_1: ageGroup1,
+      Age_Group_2: ageGroup2,
+      BMI_Hypertension: bmiHypertension,
+      Cholesterol_Atrial_Fibrillation: cholAtrialFib
+    };
 
-        const response = await fetch('/predict', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(apiData)
-        });
+    console.log("Sending data:", formData);
 
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-
-        const data = await response.json();
-        displayResults(data);
-        
-      } catch (error) {
-        console.error('Error:', error);
-        resultContainer.style.display = 'block';
-        resultContainer.className = 'risk-high';
-        resultPercentage.innerHTML = 'Error';
-        resultDetails.textContent = 'Failed to get prediction. Please try again.';
-      } finally {
-        loadingIndicator.style.display = 'none';
-      }
+    const response = await fetch('/predict', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(formData)
     });
 
-    function displayResults(data) {
-      resultContainer.style.display = 'block';
-      
-      const riskPercentage = data.risk_percentage;
-      let riskLevel, riskClass;
-      
-      if (riskPercentage >= 15) {
-        riskLevel = 'High Risk';
-        riskClass = 'high-risk';
-        resultContainer.className = 'risk-high';
-      } else if (riskPercentage >= 5) {
-        riskLevel = 'Medium Risk';
-        riskClass = 'medium-risk';
-        resultContainer.className = 'risk-medium';
-      } else {
-        riskLevel = 'Low Risk';
-        riskClass = 'low-risk';
-        resultContainer.className = 'risk-low';
-      }
-      
-      resultPercentage.innerHTML = `
-        <div style="font-size: 2rem; font-weight: bold; color: ${riskClass === 'high-risk' ? '#e53935' : riskClass === 'medium-risk' ? '#ffb300' : '#43a047'}">
-          ${riskPercentage}%
-        </div>
-        <div>${riskLevel}</div>
-      `;
-      
-      resultDetails.textContent = `Based on your health profile, you have a ${riskPercentage}% probability of experiencing a stroke.`;
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || `Server error: ${response.status}`);
     }
+
+    const data = await response.json();
+    displayResults(data);
+    
+  } catch (error) {
+    console.error('Prediction error:', error);
+    resultContainer.style.display = 'block';
+    resultContainer.className = 'risk-high';
+    resultPercentage.innerHTML = 'Error';
+    resultDetails.textContent = error.message || 'Failed to get prediction. Please try again.';
+  } finally {
+    loadingIndicator.style.display = 'none';
+  }
+}
   </script>
 </body>
 </html>
