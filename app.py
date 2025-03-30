@@ -56,53 +56,61 @@ def predict():
                 'status': 'error'
             }), 400
 
-        # Prepare input features
+        # Calculate derived values first
         bmi = float(data.get("BMI", 0))
         age = float(data.get("Age", 0))
         cholesterol = float(data.get("Cholesterol", 0))
-        
-        input_features = {
+        hypertension = int(data.get("Hypertension_Category", 0))
+        atrial_fib = int(data.get("Atrial_Fibrillation", 0))
+
+        # Create input data with EXACT order from your JSON model
+        input_data = {
+            "Atrial_Fibrillation": atrial_fib,
             "Age": age,
-            "BMI": bmi,
-            "Cholesterol": cholesterol,
-            "Hypertension_Category": int(data.get("Hypertension_Category", 0)),
-            "Atrial_Fibrillation": int(data.get("Atrial_Fibrillation", 0)),
             "Diabetes": int(data.get("Diabetes", 0)),
+            "Cholesterol": cholesterol,
             "Smoking": int(data.get("Smoking", 0)),
+            "BMI": bmi,
             "Previous_Stroke": int(data.get("Previous_Stroke", 0)),
+            "Hypertension_Category": hypertension,
+            "BMI_Hypertension": bmi * hypertension,
+            "Cholesterol_Atrial_Fibrillation": cholesterol * atrial_fib,
             "BMI_Category_1": 1 if 18.5 <= bmi < 24.9 else 0,
             "BMI_Category_2": 1 if 25 <= bmi < 29.9 else 0,
             "BMI_Category_3": 1 if bmi >= 30 else 0,
             "Cholesterol_Category_1": 1 if 200 <= cholesterol < 240 else 0,
             "Cholesterol_Category_2": 1 if cholesterol >= 240 else 0,
             "Age_Group_1": 1 if 40 <= age < 60 else 0,
-            "Age_Group_2": 1 if age >= 60 else 0,
-            "BMI_Hypertension": bmi * int(data.get("Hypertension_Category", 0)),
-            "Cholesterol_Atrial_Fibrillation": cholesterol * int(data.get("Atrial_Fibrillation", 0))
+            "Age_Group_2": 1 if age >= 60 else 0
         }
 
-        # Create DataFrame
-        input_df = pd.DataFrame([input_features])
-        
-        # Scale numeric features
-        numeric_features = ["Age", "Cholesterol", "BMI", "BMI_Hypertension", "Cholesterol_Atrial_Fibrillation"]
-        input_df[numeric_features] = scaler.transform(input_df[numeric_features])
-        
-        # Ensure correct column order
-        expected_columns = [
-            'Age', 'BMI', 'Cholesterol', 'Hypertension_Category', 'Atrial_Fibrillation',
-            'Diabetes', 'Smoking', 'Previous_Stroke', 'BMI_Category_1', 'BMI_Category_2',
-            'BMI_Category_3', 'Cholesterol_Category_1', 'Cholesterol_Category_2',
-            'Age_Group_1', 'Age_Group_2', 'BMI_Hypertension', 'Cholesterol_Atrial_Fibrillation'
+        # Create DataFrame ensuring exact column order
+        feature_order = [
+            'Atrial_Fibrillation', 'Age', 'Diabetes', 'Cholesterol', 
+            'Smoking', 'BMI', 'Previous_Stroke', 'Hypertension_Category',
+            'BMI_Hypertension', 'Cholesterol_Atrial_Fibrillation',
+            'BMI_Category_1', 'BMI_Category_2', 'BMI_Category_3',
+            'Cholesterol_Category_1', 'Cholesterol_Category_2',
+            'Age_Group_1', 'Age_Group_2'
         ]
-        input_df = input_df[expected_columns]
-        
+        input_df = pd.DataFrame([input_data])[feature_order]
+
+        # Scale the same features as during training
+        numeric_features = ['Age', 'Cholesterol', 'BMI', 'BMI_Hypertension', 'Cholesterol_Atrial_Fibrillation']
+        input_df[numeric_features] = scaler.transform(input_df[numeric_features])
+
+        # Debug print to verify
+        print("Features being sent for prediction:")
+        print(input_df.columns.tolist())
+        print("First row values:", input_df.iloc[0].values)
+
         # Make prediction
         stroke_prob = model.predict_proba(input_df)[0][1]
         
         return jsonify({
             'risk_percentage': round(stroke_prob * 100, 1),
-            'status': 'success'
+            'status': 'success',
+            'features_used': input_df.columns.tolist()  # For debugging
         })
         
     except Exception as e:
@@ -110,7 +118,8 @@ def predict():
         return jsonify({
             'error': 'Internal server error',
             'status': 'error',
-            'message': str(e)
+            'message': str(e),
+            'feature_order_expected': feature_order  # Helps debugging
         }), 500
 
 @app.route('/')
