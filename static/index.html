@@ -233,117 +233,54 @@
   </div>
 
   <script>
-    // BMI Calculation
-    const bmiInput = document.getElementById('bmi');
-    const bmiDropdown = document.getElementById('bmiDropdown');
-    const heightInput = document.getElementById('height');
-    const weightInput = document.getElementById('weight');
+  // Update your fetch call to handle errors better:
+async function handleSubmit(e) {
+  e.preventDefault();
+  
+  // Show loading state
+  loadingIndicator.style.display = 'block';
+  resultContainer.style.display = 'none';
 
-    bmiInput.addEventListener('click', (e) => {
-      e.stopPropagation();
-      bmiDropdown.classList.add('active');
+  try {
+    const response = await fetch('/predict', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(getFormData())
     });
 
-    document.addEventListener('click', (event) => {
-      if (!bmiInput.contains(event.target) && !bmiDropdown.contains(event.target)) {
-        bmiDropdown.classList.remove('active');
-      }
-    });
-
-    heightInput.addEventListener('input', calculateBMI);
-    weightInput.addEventListener('input', calculateBMI);
-
-    function calculateBMI() {
-      const height = parseFloat(heightInput.value) / 100;
-      const weight = parseFloat(weightInput.value);
-
-      if (height && weight && height > 0 && weight > 0) {
-        const bmi = (weight / (height * height)).toFixed(1);
-        bmiInput.value = bmi;
-      }
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Request failed');
     }
 
-    // Form Submission
-    const strokeForm = document.getElementById('strokeForm');
-    const resultContainer = document.getElementById('result-container');
-    const resultPercentage = document.getElementById('result-percentage');
-    const resultDetails = document.getElementById('result-details');
-    const loadingIndicator = document.getElementById('loadingIndicator');
+    const data = await response.json();
+    displayResults(data);
+    
+  } catch (error) {
+    console.error('Prediction error:', error);
+    resultContainer.style.display = 'block';
+    resultContainer.className = 'risk-high';
+    resultPercentage.innerHTML = 'Error';
+    resultDetails.textContent = error.message || 'Failed to get prediction';
+    
+  } finally {
+    loadingIndicator.style.display = 'none';
+  }
+}
 
-    strokeForm.addEventListener('submit', async function(e) {
-      e.preventDefault();
-      
-      if (!bmiInput.value || isNaN(parseFloat(bmiInput.value))) {
-        alert('Please calculate your BMI by entering height and weight');
-        bmiDropdown.classList.add('active');
-        return;
-      }
-      
-      loadingIndicator.style.display = 'block';
-      resultContainer.style.display = 'none';
-      
-      try {
-        const formData = {
-          Age: parseFloat(document.getElementById('age').value),
-          sex: document.getElementById('sex').value,
-          BMI: parseFloat(bmiInput.value),
-          Cholesterol: parseFloat(document.getElementById('cholesterol').value),
-          Hypertension_Category: parseInt(document.getElementById('hypertension').value),
-          Atrial_Fibrillation: parseInt(document.getElementById('atrial-fibrillation').value),
-          Diabetes: parseInt(document.getElementById('diabetes').value),
-          Smoking: parseInt(document.getElementById('smoking').value),
-          Previous_Stroke: parseInt(document.getElementById('previous-stroke').value)
-        };
-
-        const response = await fetch('/predict', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(formData)
-        });
-
-        if (!response.ok) throw new Error('Network response was not ok');
-        
-        const data = await response.json();
-        
-        loadingIndicator.style.display = 'none';
-        resultContainer.style.display = 'block';
-        
-        const riskPercentage = data.risk_percentage;
-        let riskLevel, riskClass;
-        
-        if (riskPercentage >= 15) {
-          riskLevel = 'High Risk';
-          riskClass = 'high-risk';
-          resultContainer.className = 'risk-high';
-        } else if (riskPercentage >= 5) {
-          riskLevel = 'Medium Risk';
-          riskClass = 'medium-risk';
-          resultContainer.className = 'risk-medium';
-        } else {
-          riskLevel = 'Low Risk';
-          riskClass = 'low-risk';
-          resultContainer.className = 'risk-low';
-        }
-        
-        resultPercentage.innerHTML = `
-          <div style="font-size: 2rem; font-weight: bold; color: ${riskClass === 'high-risk' ? '#e53935' : riskClass === 'medium-risk' ? '#ffb300' : '#43a047'}">
-            ${riskPercentage}%
-          </div>
-          <div>${riskLevel}</div>
-        `;
-        
-        resultDetails.textContent = `Based on your health profile, you have a ${riskPercentage}% probability of experiencing a stroke.`;
-        
-      } catch (error) {
-        console.error('Error:', error);
-        loadingIndicator.style.display = 'none';
-        resultContainer.style.display = 'block';
-        resultContainer.className = 'risk-high';
-        resultPercentage.innerHTML = '<span style="color: #e53935">Error</span>';
-        resultDetails.textContent = 'An error occurred while processing your request. Please try again.';
-      }
+// Helper function to get form data
+function getFormData() {
+  return {
+    Age: parseFloat(document.getElementById('age').value),
+    BMI: parseFloat(document.getElementById('bmi').value),
+    Cholesterol: parseFloat(document.getElementById('cholesterol').value),
+    Hypertension_Category: parseInt(document.getElementById('hypertension').value),
+    Atrial_Fibrillation: parseInt(document.getElementById('atrial-fibrillation').value),
+    Diabetes: parseInt(document.getElementById('diabetes').value),
+    Smoking: parseInt(document.getElementById('smoking').value),
+    Previous_Stroke: parseInt(document.getElementById('previous-stroke').value)
+  };
+}
     });
   </script>
 </body>
