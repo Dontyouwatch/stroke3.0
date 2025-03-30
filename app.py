@@ -56,14 +56,14 @@ def predict():
                 'status': 'error'
             }), 400
 
-        # Calculate derived values first
+        # Prepare input features with exact expected order
         bmi = float(data.get("BMI", 0))
         age = float(data.get("Age", 0))
         cholesterol = float(data.get("Cholesterol", 0))
         hypertension = int(data.get("Hypertension_Category", 0))
         atrial_fib = int(data.get("Atrial_Fibrillation", 0))
 
-        # Create input data with EXACT order from your JSON model
+        # Create input data with exact order from your model
         input_data = {
             "Atrial_Fibrillation": atrial_fib,
             "Age": age,
@@ -73,8 +73,8 @@ def predict():
             "BMI": bmi,
             "Previous_Stroke": int(data.get("Previous_Stroke", 0)),
             "Hypertension_Category": hypertension,
-            "BMI_Hypertension": bmi * hypertension,
-            "Cholesterol_Atrial_Fibrillation": cholesterol * atrial_fib,
+            "BMI_Hypertension": float(bmi * hypertension),  # Explicit float conversion
+            "Cholesterol_Atrial_Fibrillation": float(cholesterol * atrial_fib),
             "BMI_Category_1": 1 if 18.5 <= bmi < 24.9 else 0,
             "BMI_Category_2": 1 if 25 <= bmi < 29.9 else 0,
             "BMI_Category_3": 1 if bmi >= 30 else 0,
@@ -95,22 +95,16 @@ def predict():
         ]
         input_df = pd.DataFrame([input_data])[feature_order]
 
-        # Scale the same features as during training
+        # Scale numeric features
         numeric_features = ['Age', 'Cholesterol', 'BMI', 'BMI_Hypertension', 'Cholesterol_Atrial_Fibrillation']
         input_df[numeric_features] = scaler.transform(input_df[numeric_features])
 
-        # Debug print to verify
-        print("Features being sent for prediction:")
-        print(input_df.columns.tolist())
-        print("First row values:", input_df.iloc[0].values)
-
-        # Make prediction
-        stroke_prob = model.predict_proba(input_df)[0][1]
+        # Make prediction and ensure JSON-serializable output
+        stroke_prob = float(model.predict_proba(input_df)[0][1])  # Convert numpy float32 to Python float
         
         return jsonify({
             'risk_percentage': round(stroke_prob * 100, 1),
-            'status': 'success',
-            'features_used': input_df.columns.tolist()  # For debugging
+            'status': 'success'
         })
         
     except Exception as e:
@@ -118,10 +112,9 @@ def predict():
         return jsonify({
             'error': 'Internal server error',
             'status': 'error',
-            'message': str(e),
-            'feature_order_expected': feature_order  # Helps debugging
+            'message': str(e)
         }), 500
-
+        
 @app.route('/')
 def serve_index():
     return send_from_directory(app.static_folder, 'index.html')
