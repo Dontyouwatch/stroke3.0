@@ -6,8 +6,6 @@
   <title>Stroke Risk Assessment</title>
   <style>
     body {
-      margin: 0;
-      padding: 0;
       font-family: 'Arial', sans-serif;
       background: #f5f7fa;
       display: flex;
@@ -15,36 +13,31 @@
       align-items: center;
       min-height: 100vh;
       padding: 20px;
+      margin: 0;
     }
-
     .form-container {
       background: white;
       padding: 2rem;
       border-radius: 10px;
       box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
       width: 100%;
-      max-width: 500px;
+      max-width: 600px;
     }
-
-    .form-container h2 {
+    h2 {
       text-align: center;
-      margin-bottom: 1.5rem;
       color: #2c3e50;
+      margin-bottom: 1.5rem;
     }
-
     .form-group {
       margin-bottom: 1.2rem;
     }
-
-    .form-group label {
+    label {
       display: block;
       margin-bottom: 0.5rem;
       color: #34495e;
       font-weight: 500;
     }
-
-    .form-group input,
-    .form-group select {
+    select, input {
       width: 100%;
       padding: 0.75rem;
       border: 1px solid #ddd;
@@ -52,38 +45,12 @@
       font-size: 1rem;
       box-sizing: border-box;
     }
-
-    .form-group input:focus,
-    .form-group select:focus {
+    select:focus {
       border-color: #3498db;
       outline: none;
       box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
     }
-
-    .input-group {
-      display: flex;
-      gap: 10px;
-    }
-
-    .input-group .form-group {
-      flex: 1;
-    }
-
-    .bmi-dropdown {
-      margin-top: 0.5rem;
-      padding: 0.75rem;
-      background: #f1f5f9;
-      border: 1px solid #ddd;
-      border-radius: 6px;
-      display: none;
-      gap: 0.75rem;
-    }
-
-    .bmi-dropdown.active {
-      display: flex;
-    }
-
-    .form-group button {
+    button {
       width: 100%;
       padding: 0.9rem;
       background: #3498db;
@@ -93,15 +60,16 @@
       font-size: 1rem;
       font-weight: 500;
       cursor: pointer;
-      margin-top: 0.5rem;
+      margin-top: 1rem;
     }
-
+    button:hover {
+      background: #2980b9;
+    }
     .loading {
       text-align: center;
-      display: none;
       margin: 1.5rem 0;
+      display: none;
     }
-
     .loading-spinner {
       border: 4px solid #f3f3f3;
       border-top: 4px solid #3498db;
@@ -111,32 +79,34 @@
       animation: spin 1s linear infinite;
       margin: 0 auto 1rem;
     }
-
     #result-container {
       margin-top: 1.5rem;
       padding: 1.5rem;
       border-radius: 8px;
       display: none;
     }
-
     .risk-high {
       background-color: #ffebee;
       border-left: 5px solid #e53935;
     }
-
     .risk-medium {
       background-color: #fff8e1;
       border-left: 5px solid #ffb300;
     }
-
     .risk-low {
       background-color: #e8f5e9;
       border-left: 5px solid #43a047;
     }
-
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
+    }
+    .input-group {
+      display: flex;
+      gap: 10px;
+    }
+    .input-group .form-group {
+      flex: 1;
     }
   </style>
 </head>
@@ -146,8 +116,13 @@
     <form id="strokeForm">
       <div class="input-group">
         <div class="form-group">
-          <label for="age">Age (years)</label>
-          <input type="number" id="age" name="age" min="18" max="120" required>
+          <label for="age">Age Group</label>
+          <select id="age" name="age" required>
+            <option value="">Select age group</option>
+            <option value="40">Under 40</option>
+            <option value="50">40-59</option>
+            <option value="60">60+</option>
+          </select>
         </div>
         <div class="form-group">
           <label for="sex">Sex</label>
@@ -159,22 +134,30 @@
       </div>
 
       <div class="form-group">
-        <label for="bmi">BMI</label>
-        <input type="number" id="bmi" name="bmi" readonly required>
-        <div class="bmi-dropdown" id="bmiDropdown">
-          <input type="number" id="height" name="height" placeholder="Height (cm)" min="100" max="250" step="0.1">
-          <input type="number" id="weight" name="weight" placeholder="Weight (kg)" min="30" max="300" step="0.1">
-        </div>
+        <label for="bmi">BMI Category</label>
+        <select id="bmi" name="bmi" required>
+          <option value="">Select BMI category</option>
+          <option value="18.5">Underweight (&lt;18.5)</option>
+          <option value="22">Normal (18.5-24.9)</option>
+          <option value="27">Overweight (25-29.9)</option>
+          <option value="32">Obese (≥30)</option>
+        </select>
       </div>
 
       <div class="form-group">
-        <label for="cholesterol">Cholesterol (mg/dL)</label>
-        <input type="number" id="cholesterol" name="cholesterol" min="100" max="400" required>
+        <label for="cholesterol">Cholesterol Level</label>
+        <select id="cholesterol" name="cholesterol" required>
+          <option value="">Select cholesterol level</option>
+          <option value="170">Normal (&lt;200 mg/dL)</option>
+          <option value="220">Borderline High (200-239 mg/dL)</option>
+          <option value="250">High (≥240 mg/dL)</option>
+        </select>
       </div>
 
       <div class="form-group">
         <label for="hypertension">Blood Pressure Category</label>
         <select id="hypertension" name="hypertension" required>
+          <option value="">Select blood pressure</option>
           <option value="0">Normal (&lt;120 mmHg)</option>
           <option value="1">Elevated (120-159 mmHg)</option>
           <option value="2">High (≥160 mmHg)</option>
@@ -215,9 +198,7 @@
         </div>
       </div>
 
-      <div class="form-group">
-        <button type="submit">Calculate Stroke Risk</button>
-      </div>
+      <button type="submit">Calculate Stroke Risk</button>
     </form>
     
     <div class="loading" id="loadingIndicator">
@@ -233,55 +214,112 @@
   </div>
 
   <script>
-  // Update your fetch call to handle errors better:
-async function handleSubmit(e) {
-  e.preventDefault();
-  
-  // Show loading state
-  loadingIndicator.style.display = 'block';
-  resultContainer.style.display = 'none';
+    const strokeForm = document.getElementById('strokeForm');
+    const resultContainer = document.getElementById('result-container');
+    const resultPercentage = document.getElementById('result-percentage');
+    const resultDetails = document.getElementById('result-details');
+    const loadingIndicator = document.getElementById('loadingIndicator');
 
-  try {
-    const response = await fetch('/predict', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(getFormData())
+    strokeForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      loadingIndicator.style.display = 'block';
+      resultContainer.style.display = 'none';
+      
+      try {
+        // Get all form values
+        const formData = {
+          Age: parseFloat(document.getElementById('age').value),
+          BMI: parseFloat(document.getElementById('bmi').value),
+          Cholesterol: parseFloat(document.getElementById('cholesterol').value),
+          Hypertension_Category: parseInt(document.getElementById('hypertension').value),
+          Atrial_Fibrillation: parseInt(document.getElementById('atrial-fibrillation').value),
+          Diabetes: parseInt(document.getElementById('diabetes').value),
+          Smoking: parseInt(document.getElementById('smoking').value),
+          Previous_Stroke: parseInt(document.getElementById('previous-stroke').value)
+        };
+
+        // Calculate derived features
+        const bmi = formData.BMI;
+        const age = formData.Age;
+        const cholesterol = formData.Cholesterol;
+
+        // Prepare data for API
+        const apiData = {
+          Age: age,
+          BMI: bmi,
+          Cholesterol: cholesterol,
+          Hypertension_Category: formData.Hypertension_Category,
+          Atrial_Fibrillation: formData.Atrial_Fibrillation,
+          Diabetes: formData.Diabetes,
+          Smoking: formData.Smoking,
+          Previous_Stroke: formData.Previous_Stroke,
+          BMI_Category_1: bmi >= 18.5 && bmi < 24.9 ? 1 : 0,
+          BMI_Category_2: bmi >= 25 && bmi < 29.9 ? 1 : 0,
+          BMI_Category_3: bmi >= 30 ? 1 : 0,
+          Cholesterol_Category_1: cholesterol >= 200 && cholesterol < 240 ? 1 : 0,
+          Cholesterol_Category_2: cholesterol >= 240 ? 1 : 0,
+          Age_Group_1: age >= 40 && age < 60 ? 1 : 0,
+          Age_Group_2: age >= 60 ? 1 : 0,
+          BMI_Hypertension: bmi * formData.Hypertension_Category,
+          Cholesterol_Atrial_Fibrillation: cholesterol * formData.Atrial_Fibrillation
+        };
+
+        const response = await fetch('/predict', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(apiData)
+        });
+
+        if (!response.ok) {
+          throw new Error('Network response was not ok');
+        }
+
+        const data = await response.json();
+        displayResults(data);
+        
+      } catch (error) {
+        console.error('Error:', error);
+        resultContainer.style.display = 'block';
+        resultContainer.className = 'risk-high';
+        resultPercentage.innerHTML = 'Error';
+        resultDetails.textContent = 'Failed to get prediction. Please try again.';
+      } finally {
+        loadingIndicator.style.display = 'none';
+      }
     });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Request failed');
+    function displayResults(data) {
+      resultContainer.style.display = 'block';
+      
+      const riskPercentage = data.risk_percentage;
+      let riskLevel, riskClass;
+      
+      if (riskPercentage >= 15) {
+        riskLevel = 'High Risk';
+        riskClass = 'high-risk';
+        resultContainer.className = 'risk-high';
+      } else if (riskPercentage >= 5) {
+        riskLevel = 'Medium Risk';
+        riskClass = 'medium-risk';
+        resultContainer.className = 'risk-medium';
+      } else {
+        riskLevel = 'Low Risk';
+        riskClass = 'low-risk';
+        resultContainer.className = 'risk-low';
+      }
+      
+      resultPercentage.innerHTML = `
+        <div style="font-size: 2rem; font-weight: bold; color: ${riskClass === 'high-risk' ? '#e53935' : riskClass === 'medium-risk' ? '#ffb300' : '#43a047'}">
+          ${riskPercentage}%
+        </div>
+        <div>${riskLevel}</div>
+      `;
+      
+      resultDetails.textContent = `Based on your health profile, you have a ${riskPercentage}% probability of experiencing a stroke.`;
     }
-
-    const data = await response.json();
-    displayResults(data);
-    
-  } catch (error) {
-    console.error('Prediction error:', error);
-    resultContainer.style.display = 'block';
-    resultContainer.className = 'risk-high';
-    resultPercentage.innerHTML = 'Error';
-    resultDetails.textContent = error.message || 'Failed to get prediction';
-    
-  } finally {
-    loadingIndicator.style.display = 'none';
-  }
-}
-
-// Helper function to get form data
-function getFormData() {
-  return {
-    Age: parseFloat(document.getElementById('age').value),
-    BMI: parseFloat(document.getElementById('bmi').value),
-    Cholesterol: parseFloat(document.getElementById('cholesterol').value),
-    Hypertension_Category: parseInt(document.getElementById('hypertension').value),
-    Atrial_Fibrillation: parseInt(document.getElementById('atrial-fibrillation').value),
-    Diabetes: parseInt(document.getElementById('diabetes').value),
-    Smoking: parseInt(document.getElementById('smoking').value),
-    Previous_Stroke: parseInt(document.getElementById('previous-stroke').value)
-  };
-}
-    });
   </script>
 </body>
 </html>
