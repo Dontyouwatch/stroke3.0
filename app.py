@@ -1,6 +1,3 @@
-import warnings
-warnings.filterwarnings("ignore", message="numpy.dtype size changed")
-
 from flask import Flask, request, jsonify, send_from_directory
 import numpy as np
 import pandas as pd
@@ -20,24 +17,22 @@ def load_model_and_scaler():
     global model, scaler
     
     try:
-        model_dir = Path(__file__).parent / 'models'
+        model_path = Path(__file__).parent / 'models' / 'strokemodel.pkl'
+        scaler_path = Path(__file__).parent / 'models' / 'scaler.pkl'
         
-        # Load model - try both pickle and native XGBoost format
-        model_path = model_dir / 'strokemodel.pkl'
-        if not model_path.exists():
-            model_path = model_dir / 'strokemodel.json'
-        
-        if model_path.suffix == '.pkl':
+        # Try loading with joblib first
+        try:
             model = joblib.load(model_path)
-        else:
+            scaler = joblib.load(scaler_path)
+            print("Model loaded with joblib")
+        except:
+            # Fallback to XGBoost's native loading
             from xgboost import XGBClassifier
             model = XGBClassifier()
-            model.load_model(model_path)
-        
-        # Load scaler
-        scaler_path = model_dir / 'scaler.pkl'
-        scaler = joblib.load(scaler_path)
-        
+            model.load_model(str(model_path))
+            scaler = joblib.load(scaler_path)
+            print("Model loaded with XGBoost native")
+            
         print("Model and scaler loaded successfully")
         return True
     except Exception as e:
@@ -65,72 +60,51 @@ def predict():
                 'error': 'No data received',
                 'status': 'error'
             }), 400
+
+        # Debug print received data
+        print("Received data:", data)
         
-        # Validate all required fields with type checking
-        required_fields = {
-            'Age': (float, 18, 120),
-            'BMI': (float, 10, 50),
-            'Cholesterol': (float, 100, 400),
-            'Hypertension_Category': (int, 0, 2),
-            'Atrial_Fibrillation': (int, 0, 1),
-            'Diabetes': (int, 0, 1),
-            'Smoking': (int, 0, 1),
-            'Previous_Stroke': (int, 0, 1)
+        # Prepare input data with all required features
+        input_data = {
+            "Age": float(data.get("Age", 0)),
+            "BMI": float(data.get("BMI", 0)),
+            "Cholesterol": float(data.get("Cholesterol", 0)),
+            "Hypertension_Category": int(data.get("Hypertension_Category", 0)),
+            "Atrial_Fibrillation": int(data.get("Atrial_Fibrillation", 0)),
+            "Diabetes": int(data.get("Diabetes", 0)),
+            "Smoking": int(data.get("Smoking", 0)),
+            "Previous_Stroke": int(data.get("Previous_Stroke", 0)),
+            "BMI_Category_1": int(data.get("BMI_Category_1", 0)),
+            "BMI_Category_2": int(data.get("BMI_Category_2", 0)),
+            "BMI_Category_3": int(data.get("BMI_Category_3", 0)),
+            "Cholesterol_Category_1": int(data.get("Cholesterol_Category_1", 0)),
+            "Cholesterol_Category_2": int(data.get("Cholesterol_Category_2", 0)),
+            "Age_Group_1": int(data.get("Age_Group_1", 0)),
+            "Age_Group_2": int(data.get("Age_Group_2", 0)),
+            "BMI_Hypertension": float(data.get("BMI_Hypertension", 0)),
+            "Cholesterol_Atrial_Fibrillation": float(data.get("Cholesterol_Atrial_Fibrillation", 0))
         }
+
+        # Create DataFrame
+        input_df = pd.DataFrame([input_data])
         
-        errors = []
-        processed_data = {}
+        # Debug print prepared data
+        print("Input DataFrame:", input_df)
         
-        for field, (dtype, min_val, max_val) in required_fields.items():
-            if field not in data:
-                errors.append(f"Missing required field: {field}")
-                continue
-            
-            try:
-                value = dtype(data[field])
-                if not (min_val <= value <= max_val):
-                    errors.append(f"{field} must be between {min_val} and {max_val}")
-                processed_data[field] = value
-            except (ValueError, TypeError):
-                errors.append(f"Invalid value for {field}")
+        # Scale numeric features
+        numeric_features = ["Age", "Cholesterol", "BMI", "BMI_Hypertension", "Cholesterol_Atrial_Fibrillation"]
+        input_df[numeric_features] = scaler.transform(input_df[numeric_features])
         
-        if errors:
-            return jsonify({
-                'errors': errors,
-                'status': 'error'
-            }), 400
+        # Ensure correct column order
+        expected_columns = [
+            'Age', 'BMI', 'Cholesterol', 'Hypertension_Category', 'Atrial_Fibrillation',
+            'Diabetes', 'Smoking', 'Previous_Stroke', 'BMI_Category_1', 'BMI_Category_2',
+            'BMI_Category_3', 'Cholesterol_Category_1', 'Cholesterol_Category_2',
+            'Age_Group_1', 'Age_Group_2', 'BMI_Hypertension', 'Cholesterol_Atrial_Fibrillation'
+        ]
+        input_df = input_df[expected_columns]
         
-        # Feature engineering
-        bmi = processed_data['BMI']
-        age = processed_data['Age']
-        cholesterol = processed_data['Cholesterol']
-        
-        features = {
-            "Age": age,
-            "BMI": bmi,
-            "Cholesterol": cholesterol,
-            "Hypertension_Category": processed_data['Hypertension_Category'],
-            "Atrial_Fibrillation": processed_data['Atrial_Fibrillation'],
-            "Diabetes": processed_data['Diabetes'],
-            "Smoking": processed_data['Smoking'],
-            "Previous_Stroke": processed_data['Previous_Stroke'],
-            "BMI_Category_1": 1 if 18.5 <= bmi < 24.9 else 0,
-            "BMI_Category_2": 1 if 25 <= bmi < 29.9 else 0,
-            "BMI_Category_3": 1 if bmi >= 30 else 0,
-            "Cholesterol_Category_1": 1 if 200 <= cholesterol < 240 else 0,
-            "Cholesterol_Category_2": 1 if cholesterol >= 240 else 0,
-            "Age_Group_1": 1 if 40 <= age < 60 else 0,
-            "Age_Group_2": 1 if age >= 60 else 0,
-            "BMI_Hypertension": bmi * processed_data['Hypertension_Category'],
-            "Cholesterol_Atrial_Fibrillation": cholesterol * processed_data['Atrial_Fibrillation']
-        }
-        
-        # Create DataFrame and scale features
-        input_df = pd.DataFrame([features])
-        numeric_cols = ["Age", "Cholesterol", "BMI", "BMI_Hypertension", "Cholesterol_Atrial_Fibrillation"]
-        input_df[numeric_cols] = scaler.transform(input_df[numeric_cols])
-        
-        # Prediction
+        # Make prediction
         stroke_prob = model.predict_proba(input_df)[0][1]
         
         return jsonify({
@@ -139,11 +113,12 @@ def predict():
         })
         
     except Exception as e:
-        app.logger.error(f"Prediction error: {str(e)}\n{traceback.format_exc()}")
+        print(f"Prediction error: {str(e)}")
+        print(traceback.format_exc())
         return jsonify({
             'error': 'Internal server error',
             'status': 'error',
-            'message': 'Prediction failed'
+            'message': str(e)
         }), 500
 
 # Static file routes
@@ -157,4 +132,4 @@ def serve_static(path):
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=False)
+    app.run(host='0.0.0.0', port=port)
