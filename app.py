@@ -1,9 +1,15 @@
-from flask import Flask, request, jsonify
+import warnings
+warnings.filterwarnings("ignore", message="numpy.dtype size changed")
+warnings.filterwarnings("ignore", message="numpy.ufunc size changed")
+
+from flask import Flask, request, jsonify, send_from_directory
+import numpy as np
 import pandas as pd
 import joblib
 from pathlib import Path
+import os
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder='static')
 
 # Initialize model and scaler
 model = None
@@ -14,9 +20,11 @@ def load_model_and_scaler():
     global model, scaler
     
     try:
+        # Load the trained model
         model_path = Path(__file__).parent / 'models' / 'strokemodel.pkl'
         model = joblib.load(model_path)
         
+        # Load the scaler
         scaler_path = Path(__file__).parent / 'models' / 'scaler.pkl'
         scaler = joblib.load(scaler_path)
         
@@ -25,11 +33,13 @@ def load_model_and_scaler():
         print(f"Error loading model or scaler: {str(e)}")
         raise
 
+# Load model and scaler when the app starts
 load_model_and_scaler()
 
 @app.route('/predict', methods=['POST'])
 def predict():
     try:
+        # Get data from POST request
         data = request.get_json()
         
         # Required medical parameters
@@ -102,5 +112,15 @@ def predict():
             'message': 'Prediction failed'
         }), 500
 
+# Static file serving
+@app.route('/')
+def serve_index():
+    return send_from_directory(app.static_folder, 'index.html')
+
+@app.route('/<path:path>')
+def serve_static(path):
+    return send_from_directory(app.static_folder, path)
+
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port)
