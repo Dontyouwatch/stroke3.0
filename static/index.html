@@ -3,14 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Stroke Prediction Form</title>
+  <title>Stroke Risk Assessment</title>
   <style>
     body {
       margin: 0;
       padding: 0;
       font-family: 'Arial', sans-serif;
-      background: url('https://via.placeholder.com/1920x1080') no-repeat center center fixed;
-      background-size: cover;
+      background: #f5f7fa;
       display: flex;
       justify-content: center;
       align-items: center;
@@ -19,13 +18,12 @@
     }
 
     .form-container {
-      background: rgba(255, 255, 255, 0.95);
+      background: white;
       padding: 2rem;
       border-radius: 10px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
       width: 100%;
       max-width: 500px;
-      transition: all 0.3s ease;
     }
 
     .form-container h2 {
@@ -36,7 +34,6 @@
 
     .form-group {
       margin-bottom: 1.2rem;
-      position: relative;
     }
 
     .form-group label {
@@ -53,9 +50,7 @@
       border: 1px solid #ddd;
       border-radius: 6px;
       font-size: 1rem;
-      transition: all 0.3s ease;
       box-sizing: border-box;
-      background-color: #f9f9f9;
     }
 
     .form-group input:focus,
@@ -63,7 +58,6 @@
       border-color: #3498db;
       outline: none;
       box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
-      background-color: #fff;
     }
 
     .input-group {
@@ -89,11 +83,6 @@
       display: flex;
     }
 
-    .bmi-dropdown input {
-      width: 48%;
-      margin-bottom: 0;
-    }
-
     .form-group button {
       width: 100%;
       padding: 0.9rem;
@@ -104,103 +93,7 @@
       font-size: 1rem;
       font-weight: 500;
       cursor: pointer;
-      transition: background 0.3s ease;
       margin-top: 0.5rem;
-    }
-
-    .form-group button:hover {
-      background: #2980b9;
-    }
-
-    .description {
-      margin-top: 0.5rem;
-      font-size: 0.85rem;
-      color: #7f8c8d;
-      display: none;
-      line-height: 1.4;
-      padding: 0.5rem;
-      background-color: #f8f9fa;
-      border-radius: 4px;
-    }
-
-    .description.visible {
-      display: block;
-    }
-
-    /* Result Styling */
-    #result-container {
-      margin-top: 1.5rem;
-      padding: 1.5rem;
-      border-radius: 8px;
-      display: none;
-      animation: fadeIn 0.5s ease;
-    }
-
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-
-    .risk-high {
-      background-color: #ffebee;
-      border-left: 5px solid #e53935;
-    }
-
-    .risk-medium {
-      background-color: #fff8e1;
-      border-left: 5px solid #ffb300;
-    }
-
-    .risk-low {
-      background-color: #e8f5e9;
-      border-left: 5px solid #43a047;
-    }
-
-    #result-container h3 {
-      margin-top: 0;
-      color: #2c3e50;
-      font-size: 1.3rem;
-    }
-
-    #result-percentage {
-      font-size: 2rem;
-      font-weight: 700;
-      margin: 0.5rem 0;
-    }
-
-    .high-risk {
-      color: #e53935;
-    }
-
-    .medium-risk {
-      color: #ffb300;
-    }
-
-    .low-risk {
-      color: #43a047;
-    }
-
-    #result-details {
-      margin-top: 1rem;
-      line-height: 1.6;
-    }
-
-    .risk-factors {
-      margin-top: 1rem;
-    }
-
-    .risk-factors h4 {
-      margin-bottom: 0.5rem;
-      color: #2c3e50;
-    }
-
-    .risk-factors ul {
-      padding-left: 1.2rem;
-      margin: 0;
-    }
-
-    .risk-factors li {
-      margin-bottom: 0.3rem;
     }
 
     .loading {
@@ -219,14 +112,31 @@
       margin: 0 auto 1rem;
     }
 
+    #result-container {
+      margin-top: 1.5rem;
+      padding: 1.5rem;
+      border-radius: 8px;
+      display: none;
+    }
+
+    .risk-high {
+      background-color: #ffebee;
+      border-left: 5px solid #e53935;
+    }
+
+    .risk-medium {
+      background-color: #fff8e1;
+      border-left: 5px solid #ffb300;
+    }
+
+    .risk-low {
+      background-color: #e8f5e9;
+      border-left: 5px solid #43a047;
+    }
+
     @keyframes spin {
       0% { transform: rotate(0deg); }
       100% { transform: rotate(360deg); }
-    }
-
-    .loading-text {
-      color: #7f8c8d;
-      font-size: 0.95rem;
     }
   </style>
 </head>
@@ -236,24 +146,16 @@
     <form id="strokeForm">
       <div class="input-group">
         <div class="form-group">
-          <label for="name">Full Name</label>
-          <input type="text" id="name" name="name" required>
-          <div class="description" id="name-description">Your name will be used to personalize your results.</div>
-        </div>
-        <div class="form-group">
           <label for="age">Age (years)</label>
           <input type="number" id="age" name="age" min="18" max="120" required>
-          <div class="description" id="age-description">Stroke risk increases with age, especially after 55.</div>
         </div>
-      </div>
-
-      <div class="form-group">
-        <label for="sex">Sex</label>
-        <select id="sex" name="sex" required>
-          <option value="male">Male</option>
-          <option value="female">Female</option>
-        </select>
-        <div class="description" id="sex-description">Men have a slightly higher risk than women.</div>
+        <div class="form-group">
+          <label for="sex">Sex</label>
+          <select id="sex" name="sex" required>
+            <option value="male">Male</option>
+            <option value="female">Female</option>
+          </select>
+        </div>
       </div>
 
       <div class="form-group">
@@ -263,13 +165,11 @@
           <input type="number" id="height" name="height" placeholder="Height (cm)" min="100" max="250" step="0.1">
           <input type="number" id="weight" name="weight" placeholder="Weight (kg)" min="30" max="300" step="0.1">
         </div>
-        <div class="description" id="bmi-description">BMI categories: Underweight (&lt;18.5), Normal (18.5-24.9), Overweight (25-29.9), Obese (≥30)</div>
       </div>
 
       <div class="form-group">
         <label for="cholesterol">Cholesterol (mg/dL)</label>
         <input type="number" id="cholesterol" name="cholesterol" min="100" max="400" required>
-        <div class="description" id="cholesterol-description">Normal: &lt;200 mg/dL, Borderline high: 200-239 mg/dL, High: ≥240 mg/dL</div>
       </div>
 
       <div class="form-group">
@@ -279,7 +179,6 @@
           <option value="1">Elevated (120-159 mmHg)</option>
           <option value="2">High (≥160 mmHg)</option>
         </select>
-        <div class="description" id="hypertension-description">High blood pressure is the most important risk factor for stroke.</div>
       </div>
 
       <div class="input-group">
@@ -289,7 +188,6 @@
             <option value="0">No</option>
             <option value="1">Yes</option>
           </select>
-          <div class="description" id="afib-description">AFib increases stroke risk by 5 times.</div>
         </div>
         <div class="form-group">
           <label for="diabetes">Diabetes</label>
@@ -297,7 +195,6 @@
             <option value="0">No</option>
             <option value="1">Yes</option>
           </select>
-          <div class="description" id="diabetes-description">Diabetes doubles stroke risk.</div>
         </div>
       </div>
 
@@ -308,7 +205,6 @@
             <option value="0">Never</option>
             <option value="1">Current/Former</option>
           </select>
-          <div class="description" id="smoking-description">Smoking doubles stroke risk.</div>
         </div>
         <div class="form-group">
           <label for="previous-stroke">Previous Stroke</label>
@@ -316,7 +212,6 @@
             <option value="0">No</option>
             <option value="1">Yes</option>
           </select>
-          <div class="description" id="prev-stroke-description">Previous stroke increases recurrence risk.</div>
         </div>
       </div>
 
@@ -327,35 +222,23 @@
     
     <div class="loading" id="loadingIndicator">
       <div class="loading-spinner"></div>
-      <p class="loading-text">Analyzing your risk factors...</p>
+      <p>Analyzing your risk factors...</p>
     </div>
     
     <div id="result-container">
-      <h3>Stroke Risk Assessment for <span id="result-name"></span></h3>
+      <h3>Stroke Risk Assessment Result</h3>
       <div id="result-percentage"></div>
       <div id="result-details"></div>
-      <div class="risk-factors" id="risk-factors">
-        <h4>Key Risk Factors:</h4>
-        <ul id="risk-factors-list"></ul>
-      </div>
     </div>
   </div>
 
   <script>
-    // DOM Elements
+    // BMI Calculation
     const bmiInput = document.getElementById('bmi');
     const bmiDropdown = document.getElementById('bmiDropdown');
     const heightInput = document.getElementById('height');
     const weightInput = document.getElementById('weight');
-    const strokeForm = document.getElementById('strokeForm');
-    const resultContainer = document.getElementById('result-container');
-    const resultName = document.getElementById('result-name');
-    const resultPercentage = document.getElementById('result-percentage');
-    const resultDetails = document.getElementById('result-details');
-    const riskFactorsList = document.getElementById('risk-factors-list');
-    const loadingIndicator = document.getElementById('loadingIndicator');
 
-    // BMI Calculation
     bmiInput.addEventListener('click', (e) => {
       e.stopPropagation();
       bmiDropdown.classList.add('active');
@@ -367,56 +250,43 @@
       }
     });
 
-    bmiDropdown.addEventListener('click', (e) => e.stopPropagation());
-
     heightInput.addEventListener('input', calculateBMI);
     weightInput.addEventListener('input', calculateBMI);
 
     function calculateBMI() {
-      const height = parseFloat(heightInput.value) / 100; // cm to meters
+      const height = parseFloat(heightInput.value) / 100;
       const weight = parseFloat(weightInput.value);
 
       if (height && weight && height > 0 && weight > 0) {
         const bmi = (weight / (height * height)).toFixed(1);
         bmiInput.value = bmi;
-        bmiDropdown.classList.remove('active');
       }
     }
 
-    // Form Field Descriptions
-    const formGroups = document.querySelectorAll('.form-group');
-    formGroups.forEach(group => {
-      const input = group.querySelector('input, select');
-      const description = group.querySelector('.description');
-
-      if (input && description) {
-        input.addEventListener('focus', () => description.classList.add('visible'));
-        input.addEventListener('blur', () => description.classList.remove('visible'));
-      }
-    });
-
     // Form Submission
+    const strokeForm = document.getElementById('strokeForm');
+    const resultContainer = document.getElementById('result-container');
+    const resultPercentage = document.getElementById('result-percentage');
+    const resultDetails = document.getElementById('result-details');
+    const loadingIndicator = document.getElementById('loadingIndicator');
+
     strokeForm.addEventListener('submit', async function(e) {
       e.preventDefault();
       
-      // Validate BMI
       if (!bmiInput.value || isNaN(parseFloat(bmiInput.value))) {
         alert('Please calculate your BMI by entering height and weight');
         bmiDropdown.classList.add('active');
         return;
       }
       
-      // Show loading indicator
       loadingIndicator.style.display = 'block';
       resultContainer.style.display = 'none';
       
       try {
-        // Prepare form data according to model requirements
         const formData = {
-          name: document.getElementById('name').value,
           Age: parseFloat(document.getElementById('age').value),
           sex: document.getElementById('sex').value,
-          BMI: parseFloat(document.getElementById('bmi').value),
+          BMI: parseFloat(bmiInput.value),
           Cholesterol: parseFloat(document.getElementById('cholesterol').value),
           Hypertension_Category: parseInt(document.getElementById('hypertension').value),
           Atrial_Fibrillation: parseInt(document.getElementById('atrial-fibrillation').value),
@@ -425,28 +295,6 @@
           Previous_Stroke: parseInt(document.getElementById('previous-stroke').value)
         };
 
-        // Calculate derived features (same as in your ML code)
-        const bmi = formData.BMI;
-        const bmi_category = bmi < 18.5 ? 0 : bmi < 24.9 ? 1 : bmi < 29.9 ? 2 : 3;
-        const cholesterol = formData.Cholesterol;
-        const cholesterol_category = cholesterol < 180 ? 0 : cholesterol < 240 ? 1 : 2;
-        const age = formData.Age;
-        const age_group = age < 40 ? 0 : age < 60 ? 1 : 2;
-        const bmi_hypertension = bmi * formData.Hypertension_Category;
-        const cholesterol_Atrial_Fibrillation = cholesterol * formData.Atrial_Fibrillation;
-
-        // Add all features to the formData
-        formData.BMI_Category_1 = bmi_category === 1 ? 1 : 0;
-        formData.BMI_Category_2 = bmi_category === 2 ? 1 : 0;
-        formData.BMI_Category_3 = bmi_category === 3 ? 1 : 0;
-        formData.Cholesterol_Category_1 = cholesterol_category === 1 ? 1 : 0;
-        formData.Cholesterol_Category_2 = cholesterol_category === 2 ? 1 : 0;
-        formData.Age_Group_1 = age_group === 1 ? 1 : 0;
-        formData.Age_Group_2 = age_group === 2 ? 1 : 0;
-        formData.BMI_Hypertension = bmi_hypertension;
-        formData.Cholesterol_Atrial_Fibrillation = cholesterol_Atrial_Fibrillation;
-
-        // Send data to Flask backend
         const response = await fetch('/predict', {
           method: 'POST',
           headers: {
@@ -455,118 +303,48 @@
           body: JSON.stringify(formData)
         });
 
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
+        if (!response.ok) throw new Error('Network response was not ok');
+        
         const data = await response.json();
         
-        // Hide loading indicator
         loadingIndicator.style.display = 'none';
+        resultContainer.style.display = 'block';
         
-        // Display results
-        displayResults(data);
+        const riskPercentage = data.risk_percentage;
+        let riskLevel, riskClass;
+        
+        if (riskPercentage >= 15) {
+          riskLevel = 'High Risk';
+          riskClass = 'high-risk';
+          resultContainer.className = 'risk-high';
+        } else if (riskPercentage >= 5) {
+          riskLevel = 'Medium Risk';
+          riskClass = 'medium-risk';
+          resultContainer.className = 'risk-medium';
+        } else {
+          riskLevel = 'Low Risk';
+          riskClass = 'low-risk';
+          resultContainer.className = 'risk-low';
+        }
+        
+        resultPercentage.innerHTML = `
+          <div style="font-size: 2rem; font-weight: bold; color: ${riskClass === 'high-risk' ? '#e53935' : riskClass === 'medium-risk' ? '#ffb300' : '#43a047'}">
+            ${riskPercentage}%
+          </div>
+          <div>${riskLevel}</div>
+        `;
+        
+        resultDetails.textContent = `Based on your health profile, you have a ${riskPercentage}% probability of experiencing a stroke.`;
         
       } catch (error) {
         console.error('Error:', error);
         loadingIndicator.style.display = 'none';
         resultContainer.style.display = 'block';
         resultContainer.className = 'risk-high';
-        resultName.textContent = '';
-        resultPercentage.innerHTML = '<span class="high-risk">Error</span>';
+        resultPercentage.innerHTML = '<span style="color: #e53935">Error</span>';
         resultDetails.textContent = 'An error occurred while processing your request. Please try again.';
-        riskFactorsList.innerHTML = '';
       }
     });
-
-    function displayResults(data) {
-      resultContainer.style.display = 'block';
-      resultName.textContent = data.name;
-      
-      const riskPercentage = data.risk_percentage;
-      const riskFactors = identifyRiskFactors(data);
-      
-      // Determine risk level
-      let riskLevel, riskClass;
-      if (riskPercentage >= 15) {
-        riskLevel = 'High Risk';
-        riskClass = 'high-risk';
-        resultContainer.className = 'risk-high';
-      } else if (riskPercentage >= 5) {
-        riskLevel = 'Medium Risk';
-        riskClass = 'medium-risk';
-        resultContainer.className = 'risk-medium';
-      } else {
-        riskLevel = 'Low Risk';
-        riskClass = 'low-risk';
-        resultContainer.className = 'risk-low';
-      }
-      
-      // Display percentage and risk level
-      resultPercentage.innerHTML = `
-        <span class="${riskClass}">${riskPercentage}%</span><br>
-        <span style="font-size: 1rem;">${riskLevel}</span>
-      `;
-      
-      // Display details
-      resultDetails.innerHTML = `
-        <p>Based on your health profile, you have a <strong>${riskPercentage}%</strong> probability of experiencing a stroke.</p>
-        ${riskPercentage >= 15 ? 
-          '<p>This indicates a <strong>high risk</strong>. We strongly recommend consulting with a healthcare professional immediately.</p>' : 
-          riskPercentage >= 5 ? 
-          '<p>This indicates a <strong>moderate risk</strong>. Consider lifestyle changes and discuss with your doctor.</p>' : 
-          '<p>This indicates a <strong>low risk</strong>. Maintain healthy habits to keep your risk low.</p>'}
-      `;
-      
-      // Display risk factors
-      if (riskFactors.length > 0) {
-        riskFactorsList.innerHTML = riskFactors.map(factor => 
-          `<li>${factor}</li>`
-        ).join('');
-      } else {
-        document.getElementById('risk-factors').style.display = 'none';
-      }
-    }
-    
-    function identifyRiskFactors(data) {
-      const factors = [];
-      
-      // Age
-      if (data.Age >= 60) {
-        factors.push(`Age (${data.Age} years - higher risk after 60)`);
-      } else if (data.Age >= 40) {
-        factors.push(`Age (${data.Age} years - moderate risk between 40-60)`);
-      }
-      
-      // Blood Pressure
-      if (data.Hypertension_Category === 2) {
-        factors.push("High blood pressure (≥160 mmHg)");
-      } else if (data.Hypertension_Category === 1) {
-        factors.push("Elevated blood pressure (120-159 mmHg)");
-      }
-      
-      // BMI
-      if (data.BMI >= 30) {
-        factors.push(`Obesity (BMI: ${data.BMI})`);
-      } else if (data.BMI >= 25) {
-        factors.push(`Overweight (BMI: ${data.BMI})`);
-      }
-      
-      // Cholesterol
-      if (data.Cholesterol >= 240) {
-        factors.push(`High cholesterol (${data.Cholesterol} mg/dL)`);
-      } else if (data.Cholesterol >= 200) {
-        factors.push(`Borderline high cholesterol (${data.Cholesterol} mg/dL)`);
-      }
-      
-      // Other factors
-      if (data.Atrial_Fibrillation === 1) factors.push("Atrial fibrillation");
-      if (data.Diabetes === 1) factors.push("Diabetes");
-      if (data.Smoking === 1) factors.push("Smoking (current or former)");
-      if (data.Previous_Stroke === 1) factors.push("Previous stroke");
-      
-      return factors;
-    }
   </script>
 </body>
 </html>
