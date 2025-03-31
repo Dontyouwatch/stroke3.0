@@ -117,7 +117,7 @@
 <body>
   <div class="form-container">
     <h2>Stroke Risk Assessment</h2>
-    <form id="strokeForm">
+    <form id="strokeForm" action="javascript:void(0);">
       <div class="input-group">
         <div class="form-group">
           <label for="age">Age Group</label>
@@ -219,72 +219,124 @@
   </div>
 
   <script>
-    document.getElementById('strokeForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      // Show loading
-  document.getElementById('loadingIndicator').style.display = 'block';
-  document.getElementById('result-container').style.display = 'none';
+    document.addEventListener('DOMContentLoaded', function() {
+      const form = document.getElementById('strokeForm');
+      
+      form.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        // Show loading state
+        document.getElementById('loadingIndicator').style.display = 'block';
+        document.getElementById('result-container').style.display = 'none';
 
-  try {
-    // Get form values
-    const formData = {
-      Age: parseFloat(document.getElementById('age').value),
-      BMI: parseFloat(document.getElementById('bmi').value),
-      Cholesterol: parseFloat(document.getElementById('cholesterol').value),
-      Hypertension_Category: parseInt(document.getElementById('hypertension').value),
-      Atrial_Fibrillation: parseInt(document.getElementById('atrial-fibrillation').value),
-      Diabetes: parseInt(document.getElementById('diabetes').value),
-      Smoking: parseInt(document.getElementById('smoking').value),
-      Previous_Stroke: parseInt(document.getElementById('previous-stroke').value)
-    };
+        try {
+          // Get all form values
+          const formData = {
+            Age: parseFloat(document.getElementById('age').value),
+            BMI: parseFloat(document.getElementById('bmi').value),
+            Cholesterol: parseFloat(document.getElementById('cholesterol').value),
+            Hypertension_Category: parseInt(document.getElementById('hypertension').value),
+            Atrial_Fibrillation: parseInt(document.getElementById('atrial-fibrillation').value),
+            Diabetes: parseInt(document.getElementById('diabetes').value),
+            Smoking: parseInt(document.getElementById('smoking').value),
+            Previous_Stroke: parseInt(document.getElementById('previous-stroke').value)
+          };
 
-    // Calculate derived features
-    const derivedFeatures = {
-      BMI_Hypertension: formData.BMI * formData.Hypertension_Category,
-      Cholesterol_Atrial_Fibrillation: formData.Cholesterol * formData.Atrial_Fibrillation,
-      BMI_Category_1: formData.BMI >= 18.5 && formData.BMI < 24.9 ? 1 : 0,
-      BMI_Category_2: formData.BMI >= 25 && formData.BMI < 29.9 ? 1 : 0,
-      BMI_Category_3: formData.BMI >= 30 ? 1 : 0,
-      Cholesterol_Category_1: formData.Cholesterol >= 200 && formData.Cholesterol < 240 ? 1 : 0,
-      Cholesterol_Category_2: formData.Cholesterol >= 240 ? 1 : 0,
-      Age_Group_1: formData.Age >= 40 && formData.Age < 60 ? 1 : 0,
-      Age_Group_2: formData.Age >= 60 ? 1 : 0
-    };
+          // Validate all fields are filled
+          for (const key in formData) {
+            if (isNaN(formData[key])) {
+              throw new Error('Please fill in all fields');
+            }
+          }
 
-    const requestData = { ...formData, ...derivedFeatures };
-    console.log("Sending data:", requestData);
+          // Calculate derived features
+          const derivedFeatures = {
+            BMI_Hypertension: formData.BMI * formData.Hypertension_Category,
+            Cholesterol_Atrial_Fibrillation: formData.Cholesterol * formData.Atrial_Fibrillation,
+            BMI_Category_1: (18.5 <= formData.BMI && formData.BMI < 24.9) ? 1 : 0,
+            BMI_Category_2: (25 <= formData.BMI && formData.BMI < 29.9) ? 1 : 0,
+            BMI_Category_3: (formData.BMI >= 30) ? 1 : 0,
+            Cholesterol_Category_1: (200 <= formData.Cholesterol && formData.Cholesterol < 240) ? 1 : 0,
+            Cholesterol_Category_2: (formData.Cholesterol >= 240) ? 1 : 0,
+            Age_Group_1: (40 <= formData.Age && formData.Age < 60) ? 1 : 0,
+            Age_Group_2: (formData.Age >= 60) ? 1 : 0
+          };
 
-    const response = await fetch('/predict', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(requestData)
+          // Combine all data
+          const requestData = { ...formData, ...derivedFeatures };
+
+          // Send to backend using POST
+          const response = await fetch('/predict', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestData)
+          });
+
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Prediction failed');
+          }
+
+          const result = await response.json();
+          displayResults(result);
+          
+        } catch (error) {
+          console.error('Error:', error);
+          showError(error.message || 'Failed to get prediction. Please try again.');
+        } finally {
+          document.getElementById('loadingIndicator').style.display = 'none';
+        }
+      });
+
+      function displayResults(result) {
+        const riskPercentage = result.risk_percentage;
+        let riskLevel, riskClass;
+        
+        if (riskPercentage >= 15) {
+          riskLevel = 'High Risk';
+          riskClass = 'risk-high';
+        } else if (riskPercentage >= 5) {
+          riskLevel = 'Medium Risk';
+          riskClass = 'risk-medium';
+        } else {
+          riskLevel = 'Low Risk';
+          riskClass = 'risk-low';
+        }
+
+        // Update UI
+        const riskPercentageElement = document.getElementById('risk-percentage');
+        riskPercentageElement.textContent = `${riskPercentage.toFixed(1)}%`;
+        riskPercentageElement.style.color = 
+          riskClass === 'risk-high' ? '#e53935' :
+          riskClass === 'risk-medium' ? '#ffb300' : '#43a047';
+        
+        document.getElementById('risk-level').textContent = riskLevel;
+        
+        const riskMessages = {
+          'risk-high': 'You have a high risk of stroke. Please consult with a healthcare professional immediately.',
+          'risk-medium': 'You have a moderate risk of stroke. Consider lifestyle changes and regular check-ups.',
+          'risk-low': 'You have a low risk of stroke. Maintain healthy habits to keep your risk low.'
+        };
+        document.getElementById('risk-message').textContent = riskMessages[riskClass];
+        
+        // Show results
+        const resultContainer = document.getElementById('result-container');
+        resultContainer.className = riskClass;
+        resultContainer.style.display = 'block';
+      }
+
+      function showError(message) {
+        const resultContainer = document.getElementById('result-container');
+        resultContainer.className = 'risk-high';
+        resultContainer.style.display = 'block';
+        
+        document.getElementById('risk-percentage').textContent = 'Error';
+        document.getElementById('risk-level').textContent = '';
+        document.getElementById('risk-message').textContent = message;
+      }
     });
-
-    const result = await response.json();
-    
-    if (!response.ok) {
-      throw new Error(result.message || result.error || 'Prediction failed');
-    }
-
-    displayResults(result);
-    
-  } catch (error) {
-    console.error('Error:', error);
-    showError(error.message);
-  } finally {
-    document.getElementById('loadingIndicator').style.display = 'none';
-  }
-}
-
-function showError(message) {
-  const resultContainer = document.getElementById('result-container');
-  resultContainer.className = 'risk-high';
-  resultContainer.style.display = 'block';
-  
-  document.getElementById('risk-percentage').textContent = 'Error';
-  document.getElementById('risk-level').textContent = '';
-  document.getElementById('risk-message').textContent = message;
-}
   </script>
 </body>
 </html>
